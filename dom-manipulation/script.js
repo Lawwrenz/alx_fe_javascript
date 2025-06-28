@@ -15,6 +15,17 @@ function showRandomQuote() {
   `;
 }
 
+// Function to create the add quote form (already exists in HTML)
+function createAddQuoteForm() {
+  // The form already exists in the HTML, so we just need to ensure it's properly set up
+  console.log("Add quote form exists in HTML and is ready to use");
+  
+  // We can add any additional form setup logic here if needed
+  // For example, we could add event listeners programmatically:
+  document.getElementById('newQuoteText').placeholder = "Enter quote text here";
+  document.getElementById('newQuoteCategory').placeholder = "Enter category here";
+}
+
 // Add a new quote to the database
 function addQuote() {
   const text = document.getElementById('newQuoteText').value.trim();
@@ -44,4 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Set up event listener for new quote button
   document.getElementById('newQuote').addEventListener('click', showRandomQuote);
+  
+  // Initialize the add quote form (even though it's in HTML)
+  createAddQuoteForm();
 });

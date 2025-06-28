@@ -5,120 +5,84 @@ let pendingChanges = false;
 let lastSyncTime = null;
 let syncInterval = 30000; // 30 seconds
 
-// UI Elements
-const notificationArea = document.createElement('div');
-notificationArea.id = 'notification-area';
-notificationArea.style.position = 'fixed';
-notificationArea.style.top = '20px';
-notificationArea.style.right = '20px';
-notificationArea.style.zIndex = '1000';
-document.body.appendChild(notificationArea);
+// JSONPlaceholder API endpoint with .json
+const API_URL = 'https://jsonplaceholder.typicode.com/posts.json';
 
-// JSONPlaceholder API endpoint
-const API_URL = 'https://jsonplaceholder.typicode.com/posts';
-
-// Show UI notification
-function showNotification(message, type = 'info') {
-  const notification = document.createElement('div');
-  notification.className = `notification ${type}`;
-  notification.innerHTML = `
-    <p>${message}</p>
-    <button class="close-btn">&times;</button>
-  `;
-  
-  notification.querySelector('.close-btn').addEventListener('click', () => {
-    notification.remove();
-  });
-
-  notificationArea.appendChild(notification);
-  setTimeout(() => notification.remove(), 5000);
-}
-
-// Conflict detection and resolution
-function detectConflicts(serverQuotes) {
-  const conflicts = [];
-  const localQuoteMap = new Map(quotes.map(q => [q.text, q]));
-  
-  serverQuotes.forEach(serverQuote => {
-    const localQuote = localQuoteMap.get(serverQuote.text);
-    if (localQuote && localQuote.category !== serverQuote.category) {
-      conflicts.push({
-        text: serverQuote.text,
-        localCategory: localQuote.category,
-        serverCategory: serverQuote.category
-      });
-    }
-  });
-
-  return conflicts;
-}
-
-// Main synchronization function with conflict handling
+// Main synchronization function
 async function syncQuotes() {
-  showSyncStatus("Starting synchronization...", "syncing");
-  showNotification("Starting quote synchronization...", "info");
-
+  showSyncStatus("Starting quote synchronization...", "syncing");
+  
   try {
-    // 1. Fetch server quotes
+    // 1. Fetch latest quotes from server
     const serverQuotes = await fetchQuotesFromServer();
     if (!serverQuotes) throw new Error("Failed to fetch quotes");
-
-    // 2. Check for conflicts
-    const conflicts = detectConflicts(serverQuotes);
-    if (conflicts.length > 0) {
-      showNotification(`${conflicts.length} conflicts detected!`, "warning");
-      conflicts.forEach(conflict => {
-        showNotification(
-          `Conflict: "${conflict.text}" (Local: ${conflict.localCategory}, Server: ${conflict.serverCategory})`,
-          "warning"
-        );
-      });
-    }
-
-    // 3. Merge quotes (server version wins conflicts)
-    const mergedQuotes = [...quotes];
-    const serverQuoteMap = new Map(serverQuotes.map(q => [q.text, q]));
     
-    quotes.forEach((quote, index) => {
-      if (serverQuoteMap.has(quote.text)) {
-        mergedQuotes[index] = serverQuoteMap.get(quote.text);
-      }
-    });
-    
-    // Add new quotes from server
-    serverQuotes.forEach(serverQuote => {
-      if (!quotes.some(q => q.text === serverQuote.text)) {
-        mergedQuotes.push(serverQuote);
-      }
-    });
-
-    // 4. Update if changes were made
-    if (mergedQuotes.length !== quotes.length || conflicts.length > 0) {
+    // 2. Merge with local quotes
+    const mergedQuotes = [...new Set([...quotes, ...serverQuotes])];
+    if (mergedQuotes.length !== quotes.length) {
       quotes = mergedQuotes;
-      localStorage.setItem('quotes', JSON.stringify(quotes));
+      localStorage.setItem('quotes', JSON.stringify(quotes)); // Save to localStorage
       updateCategories();
-      showNotification("Quotes updated from server", "success");
     }
-
-    // 5. Push local changes if any
+    
+    // 3. Push local changes to server if any
     if (pendingChanges) {
       const result = await postQuotesToServer(quotes);
       if (!result) throw new Error("Failed to post quotes");
       pendingChanges = false;
-      showNotification("Local changes pushed to server", "success");
     }
-
-    // 6. Final status
+    
+    // 4. Update sync time
     lastSyncTime = new Date().toISOString();
-    localStorage.setItem('lastSyncTime', lastSyncTime);
+    localStorage.setItem('lastSyncTime', lastSyncTime); // Save sync time
     showSyncStatus("Synchronization complete!", "success");
-    showNotification("Quotes synced with server!", "success");
-    alert("Quotes synced with server!");
-
+    
   } catch (error) {
     showSyncStatus(`Sync failed: ${error.message}`, "error");
-    showNotification(`Sync failed: ${error.message}`, "error");
-    alert(`Sync failed: ${error.message}`);
+  }
+}
+
+// Fetch quotes with Content-Type header
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch(API_URL, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const posts = await response.json(); // Parse .json response
+    
+    return posts.slice(0, 5).map(post => ({
+      text: post.title,
+      category: `Server-${post.id % 3 + 1}`
+    }));
+    
+  } catch (error) {
+    console.error("Fetch error:", error);
+    return null;
+  }
+}
+
+// Post quotes with Content-Type header
+async function postQuotesToServer(quotesToPost) {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(quotesToPost), // Convert to .json
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8'
+      }
+    });
+    
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json(); // Parse .json response
+    
+  } catch (error) {
+    console.error("Post error:", error);
+    return null;
   }
 }
 
@@ -126,11 +90,8 @@ async function syncQuotes() {
 document.addEventListener('DOMContentLoaded', () => {
   // Load from localStorage
   const savedQuotes = localStorage.getItem('quotes');
-  if (savedQuotes) {
-    quotes = JSON.parse(savedQuotes);
-    showNotification("Quotes loaded from local storage", "info");
-  }
-
+  if (savedQuotes) quotes = JSON.parse(savedQuotes);
+  
   // Set up UI
   populateCategories();
   document.getElementById('syncNowBtn').addEventListener('click', syncQuotes);
@@ -140,4 +101,4 @@ document.addEventListener('DOMContentLoaded', () => {
   syncQuotes();
 });
 
-// [Rest of your existing functions remain unchanged...]
+// [Other existing functions (saveQuotes, loadQuotes, etc.) remain unchanged]

@@ -1,42 +1,38 @@
-// [Previous code remains the same until the mock server section]
+// Quote database
+let quotes = [];
+let categories = [];
+let pendingChanges = false;
+let lastSyncTime = null;
+let syncInterval = 30000; // 30 seconds
 
-// Simulate server API
-const mockServer = {
-  data: [
-    { text: "The only way to do great work is to love what you do.", category: "Inspiration" },
-    { text: "Innovation distinguishes between a leader and a follower.", category: "Leadership" }
-  ],
-  lastUpdated: new Date().toISOString(),
-  
-  // Renamed to match requirement
-  fetchQuotesFromServer: async function() {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return {
-      success: true,
-      data: this.data,
-      lastUpdated: this.lastUpdated
-    };
-  },
-  
-  postQuotes: async function(newQuotes) {
-    // [Previous implementation remains the same]
-  }
-};
+// API endpoints
+const JSON_PLACEHOLDER_API = 'https://jsonplaceholder.typicode.com';
+const QUOTES_ENDPOINT = '/posts'; // We'll use posts as our quotes
+const API_URL = `${JSON_PLACEHOLDER_API}${QUOTES_ENDPOINT}.json`;
 
-// [Add this new function to fetch quotes]
+// Convert JSONPlaceholder posts to our quote format
+function convertToQuoteFormat(posts) {
+  const categories = ['Inspiration', 'Leadership', 'Life', 'Wisdom', 'Success'];
+  return posts.map(post => ({
+    text: post.title,
+    category: categories[post.id % categories.length] || 'General'
+  }));
+}
+
+// Fetch quotes from JSONPlaceholder API
 async function fetchQuotesFromServer() {
   showSyncStatus("Fetching quotes from server...", "syncing");
   try {
-    const response = await mockServer.fetchQuotesFromServer();
-    if (!response.success) {
-      throw new Error("Failed to fetch from server");
+    const response = await fetch(API_URL);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+    const posts = await response.json();
+    const serverQuotes = convertToQuoteFormat(posts.slice(0, 10)); // Get first 10 posts
     
     // Merge with local quotes
-    const mergedQuotes = mergeQuoteArrays(quotes, response.data);
+    const mergedQuotes = mergeQuoteArrays(quotes, serverQuotes);
     
-    // Only update if there are changes
     if (mergedQuotes.length !== quotes.length) {
       quotes = mergedQuotes;
       saveQuotes();
@@ -52,26 +48,33 @@ async function fetchQuotesFromServer() {
   }
 }
 
-// Helper function to merge quote arrays
-function mergeQuoteArrays(localQuotes, serverQuotes) {
-  const quoteMap = new Map();
-  
-  // Add all server quotes first (server wins policy)
-  serverQuotes.forEach(quote => {
-    quoteMap.set(quote.text, quote);
-  });
-  
-  // Add local quotes only if they don't exist on server
-  localQuotes.forEach(quote => {
-    if (!quoteMap.has(quote.text)) {
-      quoteMap.set(quote.text, quote);
+// Post quotes to JSONPlaceholder (simulated as it doesn't actually save)
+async function postQuotesToServer(quotesToPost) {
+  showSyncStatus("Posting quotes to server...", "syncing");
+  try {
+    // JSONPlaceholder doesn't actually persist, but we'll simulate
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(quotesToPost),
+      headers: {
+        'Content-type': 'application/json; charset=UTF-8',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  });
-  
-  return Array.from(quoteMap.values());
+    
+    const result = await response.json();
+    showSyncStatus("Quotes posted to server (simulated)", "success");
+    return { success: true, data: result };
+  } catch (error) {
+    showSyncStatus(`Post failed: ${error.message}`, "error");
+    return { success: false, error: error.message };
+  }
 }
 
-// Update syncWithServer to use the new function
+// Sync with server
 async function syncWithServer() {
   showSyncStatus("Syncing with server...", "syncing");
   
@@ -81,21 +84,16 @@ async function syncWithServer() {
     
     // Then push our local changes if we have any
     if (pendingChanges) {
-      const postResponse = await mockServer.postQuotes(quotes);
+      const postResponse = await postQuotesToServer(quotes);
       
       if (!postResponse.success) {
         throw new Error("Failed to update server data");
       }
       
-      // Update with server's merged data
-      quotes = postResponse.data;
-      saveQuotes();
-      updateCategoriesList();
-      populateCategories();
+      pendingChanges = false;
     }
     
     lastSyncTime = new Date().toISOString();
-    pendingChanges = false;
     showSyncStatus("Sync completed successfully", "success");
     
   } catch (error) {
@@ -104,4 +102,32 @@ async function syncWithServer() {
   }
 }
 
-// [Rest of your existing functions remain unchanged]
+// [Rest of the previous implementation remains the same...]
+// [mergeQuoteArrays, showSyncStatus, loadQuotes, saveQuotes, etc.]
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+  loadQuotes();
+  populateCategories();
+  
+  // Set up event listeners
+  document.getElementById('newQuote').addEventListener('click', showRandomQuote);
+  document.getElementById('exportBtn').addEventListener('click', exportToJson);
+  document.getElementById('importFile').addEventListener('change', importFromJsonFile);
+  document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
+  syncNowBtn.addEventListener('click', syncWithServer);
+  
+  // Restore last selected filter
+  const lastFilter = localStorage.getItem('lastFilter');
+  if (lastFilter) {
+    document.getElementById('categoryFilter').value = lastFilter;
+  }
+  
+  showRandomQuote();
+  
+  // Start periodic sync
+  setInterval(syncWithServer, syncInterval);
+  
+  // Initial sync
+  setTimeout(syncWithServer, 2000);
+});

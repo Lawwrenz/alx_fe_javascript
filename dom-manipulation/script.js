@@ -5,11 +5,14 @@ const quotes = [
   { text: "Your time is limited, don't waste it living someone else's life.", category: "Life" }
 ];
 
-// Display a random quote
+// Display a random quote using innerHTML
 function showRandomQuote() {
   const randomIndex = Math.floor(Math.random() * quotes.length);
   const quote = quotes[randomIndex];
-  document.getElementById('quoteDisplay').textContent = `"${quote.text}" - ${quote.category}`;
+  document.getElementById('quoteDisplay').innerHTML = `
+    <blockquote>"${quote.text}"</blockquote>
+    <p><em>- ${quote.category}</em></p>
+  `;
 }
 
 // Add a new quote to the database
@@ -22,16 +25,16 @@ function addQuote() {
     document.getElementById('newQuoteText').value = '';
     document.getElementById('newQuoteCategory').value = '';
     showRandomQuote();
+    
+    // Show confirmation using innerHTML
+    document.getElementById('quoteDisplay').innerHTML += `
+      <p style="color: green;">Quote added successfully!</p>
+    `;
   } else {
-    alert('Please enter both a quote and a category.');
+    document.getElementById('quoteDisplay').innerHTML = `
+      <p style="color: red;">Please enter both a quote and a category.</p>
+    `;
   }
-}
-
-// Create form for adding quotes (already in HTML as per instructions)
-function createAddQuoteForm() {
-  // Form is already in HTML as per instructions
-  // This function is maintained for consistency with requirements
-  console.log("Add quote form is ready");
 }
 
 // Initialize the application
@@ -41,7 +44,4 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Set up event listener for new quote button
   document.getElementById('newQuote').addEventListener('click', showRandomQuote);
-  
-  // Initialize add quote form
-  createAddQuoteForm();
 });

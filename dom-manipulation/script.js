@@ -5,10 +5,8 @@ let pendingChanges = false;
 let lastSyncTime = null;
 let syncInterval = 30000; // 30 seconds
 
-// API endpoints
-const JSON_PLACEHOLDER_API = 'https://jsonplaceholder.typicode.com';
-const QUOTES_ENDPOINT = '/posts'; // We'll use posts as our quotes
-const API_URL = `${JSON_PLACEHOLDER_API}${QUOTES_ENDPOINT}.json`;
+// JSONPlaceholder API endpoint
+const API_URL = 'https://jsonplaceholder.typicode.com/posts';
 
 // Convert JSONPlaceholder posts to our quote format
 function convertToQuoteFormat(posts) {
@@ -74,6 +72,38 @@ async function postQuotesToServer(quotesToPost) {
   }
 }
 
+// [Rest of your existing functions (mergeQuoteArrays, showSyncStatus, 
+// loadQuotes, saveQuotes, populateCategories, filterQuotes, 
+// showRandomQuote, addQuote, exportToJson, importFromJsonFile, 
+// createAddQuoteForm) remain unchanged]
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', function() {
+  loadQuotes();
+  populateCategories();
+  
+  // Set up event listeners
+  document.getElementById('newQuote').addEventListener('click', showRandomQuote);
+  document.getElementById('exportBtn').addEventListener('click', exportToJson);
+  document.getElementById('importFile').addEventListener('change', importFromJsonFile);
+  document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
+  document.getElementById('syncNowBtn').addEventListener('click', syncWithServer);
+  
+  // Restore last selected filter
+  const lastFilter = localStorage.getItem('lastFilter');
+  if (lastFilter) {
+    document.getElementById('categoryFilter').value = lastFilter;
+  }
+  
+  showRandomQuote();
+  
+  // Start periodic sync
+  setInterval(syncWithServer, syncInterval);
+  
+  // Initial sync
+  setTimeout(syncWithServer, 2000);
+});
+
 // Sync with server
 async function syncWithServer() {
   showSyncStatus("Syncing with server...", "syncing");
@@ -101,33 +131,3 @@ async function syncWithServer() {
     showSyncStatus(`Sync failed: ${error.message}`, "error");
   }
 }
-
-// [Rest of the previous implementation remains the same...]
-// [mergeQuoteArrays, showSyncStatus, loadQuotes, saveQuotes, etc.]
-
-// Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
-  loadQuotes();
-  populateCategories();
-  
-  // Set up event listeners
-  document.getElementById('newQuote').addEventListener('click', showRandomQuote);
-  document.getElementById('exportBtn').addEventListener('click', exportToJson);
-  document.getElementById('importFile').addEventListener('change', importFromJsonFile);
-  document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
-  syncNowBtn.addEventListener('click', syncWithServer);
-  
-  // Restore last selected filter
-  const lastFilter = localStorage.getItem('lastFilter');
-  if (lastFilter) {
-    document.getElementById('categoryFilter').value = lastFilter;
-  }
-  
-  showRandomQuote();
-  
-  // Start periodic sync
-  setInterval(syncWithServer, syncInterval);
-  
-  // Initial sync
-  setTimeout(syncWithServer, 2000);
-});

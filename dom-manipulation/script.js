@@ -5,10 +5,10 @@ let pendingChanges = false;
 let lastSyncTime = null;
 let syncInterval = 30000; // 30 seconds
 
-// JSONPlaceholder API endpoint with .json
-const API_URL = 'https://jsonplaceholder.typicode.com/posts.json';
+// JSONPlaceholder API endpoint
+const API_URL = 'https://jsonplaceholder.typicode.com/posts';
 
-// Main synchronization function
+// Main synchronization function with alert
 async function syncQuotes() {
   showSyncStatus("Starting quote synchronization...", "syncing");
   
@@ -21,7 +21,7 @@ async function syncQuotes() {
     const mergedQuotes = [...new Set([...quotes, ...serverQuotes])];
     if (mergedQuotes.length !== quotes.length) {
       quotes = mergedQuotes;
-      localStorage.setItem('quotes', JSON.stringify(quotes)); // Save to localStorage
+      localStorage.setItem('quotes', JSON.stringify(quotes));
       updateCategories();
     }
     
@@ -32,73 +32,16 @@ async function syncQuotes() {
       pendingChanges = false;
     }
     
-    // 4. Update sync time
+    // 4. Update sync time and show success alert
     lastSyncTime = new Date().toISOString();
-    localStorage.setItem('lastSyncTime', lastSyncTime); // Save sync time
+    localStorage.setItem('lastSyncTime', lastSyncTime);
     showSyncStatus("Synchronization complete!", "success");
+    alert("Quotes synced with server!"); // Added alert notification
     
   } catch (error) {
     showSyncStatus(`Sync failed: ${error.message}`, "error");
+    alert("Sync failed: " + error.message); // Also alert on errors
   }
 }
 
-// Fetch quotes with Content-Type header
-async function fetchQuotesFromServer() {
-  try {
-    const response = await fetch(API_URL, {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const posts = await response.json(); // Parse .json response
-    
-    return posts.slice(0, 5).map(post => ({
-      text: post.title,
-      category: `Server-${post.id % 3 + 1}`
-    }));
-    
-  } catch (error) {
-    console.error("Fetch error:", error);
-    return null;
-  }
-}
-
-// Post quotes with Content-Type header
-async function postQuotesToServer(quotesToPost) {
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify(quotesToPost), // Convert to .json
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8'
-      }
-    });
-    
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json(); // Parse .json response
-    
-  } catch (error) {
-    console.error("Post error:", error);
-    return null;
-  }
-}
-
-// Initialize application
-document.addEventListener('DOMContentLoaded', () => {
-  // Load from localStorage
-  const savedQuotes = localStorage.getItem('quotes');
-  if (savedQuotes) quotes = JSON.parse(savedQuotes);
-  
-  // Set up UI
-  populateCategories();
-  document.getElementById('syncNowBtn').addEventListener('click', syncQuotes);
-  setInterval(syncQuotes, syncInterval);
-  
-  // Initial sync
-  syncQuotes();
-});
-
-// [Other existing functions (saveQuotes, loadQuotes, etc.) remain unchanged]
+// [Rest of your existing functions remain unchanged...]

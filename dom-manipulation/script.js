@@ -5,25 +5,46 @@ const quotes = [
   { text: "Your time is limited, don't waste it living someone else's life.", category: "Life" }
 ];
 
-// Display a random quote using innerHTML
+// Display a random quote using DOM methods
 function showRandomQuote() {
   const randomIndex = Math.floor(Math.random() * quotes.length);
   const quote = quotes[randomIndex];
-  document.getElementById('quoteDisplay').innerHTML = `
-    <blockquote>"${quote.text}"</blockquote>
-    <p><em>- ${quote.category}</em></p>
-  `;
+  
+  // Clear previous quote
+  const quoteDisplay = document.getElementById('quoteDisplay');
+  quoteDisplay.innerHTML = '';
+  
+  // Create elements using createElement
+  const blockquote = document.createElement('blockquote');
+  const quoteText = document.createTextNode(`"${quote.text}"`);
+  const categoryPara = document.createElement('p');
+  const categoryEm = document.createElement('em');
+  const categoryText = document.createTextNode(`- ${quote.category}`);
+  
+  // Build structure using appendChild
+  blockquote.appendChild(quoteText);
+  categoryEm.appendChild(categoryText);
+  categoryPara.appendChild(categoryEm);
+  quoteDisplay.appendChild(blockquote);
+  quoteDisplay.appendChild(categoryPara);
 }
 
-// Function to create the add quote form (already exists in HTML)
+// Create form for adding quotes using DOM methods
 function createAddQuoteForm() {
-  // The form already exists in the HTML, so we just need to ensure it's properly set up
-  console.log("Add quote form exists in HTML and is ready to use");
+  // Form already exists in HTML, but we'll enhance it with DOM methods
+  const formDiv = document.querySelector('body > div:nth-child(4)');
   
-  // We can add any additional form setup logic here if needed
-  // For example, we could add event listeners programmatically:
-  document.getElementById('newQuoteText').placeholder = "Enter quote text here";
-  document.getElementById('newQuoteCategory').placeholder = "Enter category here";
+  // Create heading element
+  const heading = document.createElement('h3');
+  heading.textContent = 'Add New Quote';
+  
+  // Insert heading before the form inputs
+  formDiv.insertBefore(heading, formDiv.firstChild);
+  
+  // Style the button using DOM properties
+  const addButton = formDiv.querySelector('button');
+  addButton.style.marginTop = '10px';
+  addButton.style.padding = '5px 15px';
 }
 
 // Add a new quote to the database
@@ -35,16 +56,32 @@ function addQuote() {
     quotes.push({ text, category });
     document.getElementById('newQuoteText').value = '';
     document.getElementById('newQuoteCategory').value = '';
-    showRandomQuote();
     
-    // Show confirmation using innerHTML
-    document.getElementById('quoteDisplay').innerHTML += `
-      <p style="color: green;">Quote added successfully!</p>
-    `;
+    // Create success message element
+    const successMsg = document.createElement('p');
+    successMsg.textContent = 'Quote added successfully!';
+    successMsg.style.color = 'green';
+    
+    // Append message to quote display
+    const quoteDisplay = document.getElementById('quoteDisplay');
+    quoteDisplay.appendChild(successMsg);
+    
+    // Remove message after 2 seconds
+    setTimeout(() => {
+      quoteDisplay.removeChild(successMsg);
+    }, 2000);
+    
+    showRandomQuote();
   } else {
-    document.getElementById('quoteDisplay').innerHTML = `
-      <p style="color: red;">Please enter both a quote and a category.</p>
-    `;
+    // Create error message element
+    const errorMsg = document.createElement('p');
+    errorMsg.textContent = 'Please enter both a quote and a category.';
+    errorMsg.style.color = 'red';
+    
+    // Append message to quote display
+    const quoteDisplay = document.getElementById('quoteDisplay');
+    quoteDisplay.innerHTML = '';
+    quoteDisplay.appendChild(errorMsg);
   }
 }
 
@@ -56,6 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Set up event listener for new quote button
   document.getElementById('newQuote').addEventListener('click', showRandomQuote);
   
-  // Initialize the add quote form (even though it's in HTML)
+  // Initialize the add quote form
   createAddQuoteForm();
 });

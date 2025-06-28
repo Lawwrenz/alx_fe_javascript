@@ -1,43 +1,81 @@
-// [Previous constants and variables remain the same...]
+// Quote database
+let quotes = [];
+let categories = [];
+let pendingChanges = false;
+let lastSyncTime = null;
+let syncInterval = 30000; // 30 seconds
 
-// New syncQuotes function to handle the complete synchronization process
-async function syncQuotes() {
-  showSyncStatus("Starting quote synchronization...", "syncing");
-  
+// JSONPlaceholder API endpoint
+const API_URL = 'https://jsonplaceholder.typicode.com/posts';
+
+// Convert JSONPlaceholder posts to our quote format
+function convertToQuoteFormat(posts) {
+  const categories = ['Inspiration', 'Leadership', 'Life', 'Wisdom', 'Success'];
+  return posts.map(post => ({
+    text: post.title,
+    category: categories[post.id % categories.length] || 'General'
+  }));
+}
+
+// Fetch quotes from JSONPlaceholder API
+async function fetchQuotesFromServer() {
+  showSyncStatus("Fetching quotes from server...", "syncing");
   try {
-    // Step 1: Fetch server quotes
-    const fetchSuccess = await fetchQuotesFromServer();
-    if (!fetchSuccess) {
-      throw new Error("Failed to fetch quotes from server");
+    const response = await fetch(API_URL);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-
-    // Step 2: Post local changes if any
-    if (pendingChanges) {
-      const postSuccess = await postQuotesToServer(quotes);
-      if (!postSuccess) {
-        throw new Error("Failed to post quotes to server");
-      }
-      pendingChanges = false;
-    }
-
-    // Step 3: Update last sync time
-    lastSyncTime = new Date().toISOString();
-    showSyncStatus("Quote synchronization completed", "success");
-    return true;
+    const posts = await response.json();
+    const serverQuotes = convertToQuoteFormat(posts.slice(0, 10)); // Get first 10 posts
     
+    // Merge with local quotes
+    const mergedQuotes = mergeQuoteArrays(quotes, serverQuotes);
+    
+    if (mergedQuotes.length !== quotes.length) {
+      quotes = mergedQuotes;
+      saveQuotes();
+      updateCategoriesList();
+      populateCategories();
+      showSyncStatus("Updated quotes from server", "success");
+    }
+    
+    return true;
   } catch (error) {
-    showSyncStatus(`Synchronization failed: ${error.message}`, "error");
+    showSyncStatus(`Fetch failed: ${error.message}`, "error");
     return false;
   }
 }
 
-// Updated syncWithServer to use syncQuotes
-async function syncWithServer() {
-  return await syncQuotes();
+// Post quotes to JSONPlaceholder (simulated as it doesn't actually save)
+async function postQuotesToServer(quotesToPost) {
+  showSyncStatus("Posting quotes to server...", "syncing");
+  try {
+    // JSONPlaceholder doesn't actually persist, but we'll simulate
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(quotesToPost),
+      headers: {
+        'Content-type': 'application/json; charset=UTF-8',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    showSyncStatus("Quotes posted to server (simulated)", "success");
+    return { success: true, data: result };
+  } catch (error) {
+    showSyncStatus(`Post failed: ${error.message}`, "error");
+    return { success: false, error: error.message };
+  }
 }
 
-// [Rest of your existing functions remain unchanged...]
-// fetchQuotesFromServer, postQuotesToServer, loadQuotes, saveQuotes, etc.
+// [Rest of your existing functions (mergeQuoteArrays, showSyncStatus, 
+// loadQuotes, saveQuotes, populateCategories, filterQuotes, 
+// showRandomQuote, addQuote, exportToJson, importFromJsonFile, 
+// createAddQuoteForm) remain unchanged]
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -49,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('exportBtn').addEventListener('click', exportToJson);
   document.getElementById('importFile').addEventListener('change', importFromJsonFile);
   document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
-  document.getElementById('syncNowBtn').addEventListener('click', syncQuotes); // Updated to use syncQuotes
+  document.getElementById('syncNowBtn').addEventListener('click', syncWithServer);
   
   // Restore last selected filter
   const lastFilter = localStorage.getItem('lastFilter');
@@ -60,8 +98,36 @@ document.addEventListener('DOMContentLoaded', function() {
   showRandomQuote();
   
   // Start periodic sync
-  setInterval(syncQuotes, syncInterval); // Updated to use syncQuotes
+  setInterval(syncWithServer, syncInterval);
   
   // Initial sync
-  setTimeout(syncQuotes, 2000); // Updated to use syncQuotes
+  setTimeout(syncWithServer, 2000);
 });
+
+// Sync with server
+async function syncWithServer() {
+  showSyncStatus("Syncing with server...", "syncing");
+  
+  try {
+    // First fetch any server updates
+    await fetchQuotesFromServer();
+    
+    // Then push our local changes if we have any
+    if (pendingChanges) {
+      const postResponse = await postQuotesToServer(quotes);
+      
+      if (!postResponse.success) {
+        throw new Error("Failed to update server data");
+      }
+      
+      pendingChanges = false;
+    }
+    
+    lastSyncTime = new Date().toISOString();
+    showSyncStatus("Sync completed successfully", "success");
+    
+  } catch (error) {
+    console.error("Sync error:", error);
+    showSyncStatus(`Sync failed: ${error.message}`, "error");
+  }
+}

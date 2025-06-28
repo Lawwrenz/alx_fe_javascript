@@ -3,22 +3,43 @@ let quotes = [];
 let categories = [];
 let pendingChanges = false;
 let lastSyncTime = null;
-let syncInterval = 30000; // 30 seconds
+const SYNC_INTERVAL = 30000; // 30 seconds sync interval
 
 // JSONPlaceholder API endpoint
 const API_URL = 'https://jsonplaceholder.typicode.com/posts';
 
-// Fetch quotes from server with Content-Type header
-async function fetchQuotesFromServer() {
-  showSyncStatus("Fetching quotes from server...", "syncing");
+// Initialize the application with setInterval for periodic sync
+document.addEventListener('DOMContentLoaded', function() {
+  loadQuotes();
+  populateCategories();
+  
+  // Set up event listeners
+  document.getElementById('newQuote').addEventListener('click', showRandomQuote);
+  document.getElementById('exportBtn').addEventListener('click', exportToJson);
+  document.getElementById('importFile').addEventListener('change', importFromJsonFile);
+  document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
+  document.getElementById('syncNowBtn').addEventListener('click', syncQuotes);
+  
+  // Set up periodic synchronization using setInterval
+  setInterval(syncQuotes, SYNC_INTERVAL); // Clear setInterval usage here
+  
+  // Initial sync
+  syncQuotes();
+});
+
+// Sync quotes function
+async function syncQuotes() {
+  showSyncStatus("Starting synchronization...", "syncing");
+  
   try {
+    // Fetch with Content-Type
     const response = await fetch(API_URL, {
       headers: {
-        'Content-Type': 'application/json' // Explicit Content-Type
+        'Content-Type': 'application/json'
       }
     });
     
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) throw new Error(`HTTP error! ${response.status}`);
     
     const posts = await response.json();
     const serverQuotes = posts.slice(0, 5).map(post => ({
@@ -26,74 +47,17 @@ async function fetchQuotesFromServer() {
       category: `Category ${post.id % 3 + 1}`
     }));
     
-    return mergeQuotes(serverQuotes);
-  } catch (error) {
-    showSyncStatus(`Fetch failed: ${error.message}`, "error");
-    return false;
-  }
-}
-
-// Post quotes to server with Content-Type header
-async function postQuotesToServer(quotesToPost) {
-  showSyncStatus("Posting quotes to server...", "syncing");
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify(quotesToPost),
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8' // Explicit Content-Type with charset
-      }
-    });
-    
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    showSyncStatus(`Post failed: ${error.message}`, "error");
-    return false;
-  }
-}
-
-// Main sync function with Content-Type in all requests
-async function syncQuotes() {
-  showSyncStatus("Starting synchronization...", "syncing");
-  
-  try {
-    // Fetch with Content-Type
-    const serverQuotes = await fetchQuotesFromServer();
-    if (!serverQuotes) throw new Error("Fetch failed");
-    
-    // Post with Content-Type if changes exist
-    if (pendingChanges) {
-      const postResult = await postQuotesToServer(quotes);
-      if (!postResult) throw new Error("Post failed");
-      pendingChanges = false;
+    if (mergeQuotes(serverQuotes)) {
+      updateCategories();
     }
     
     lastSyncTime = new Date().toISOString();
-    showSyncStatus("Synchronization complete", "success");
-    return true;
+    showSyncStatus("Sync complete", "success");
   } catch (error) {
-    showSyncStatus(`Sync error: ${error.message}`, "error");
-    return false;
+    showSyncStatus(`Sync failed: ${error.message}`, "error");
   }
 }
 
-// Helper function to merge quotes
-function mergeQuotes(newQuotes) {
-  const merged = [...quotes];
-  newQuotes.forEach(newQuote => {
-    if (!quotes.some(q => q.text === newQuote.text)) {
-      merged.push(newQuote);
-    }
-  });
-  
-  if (merged.length !== quotes.length) {
-    quotes = merged;
-    saveQuotes();
-    updateCategories();
-    return true;
-  }
-  return false;
-}
-
-// [Rest of the existing functions remain unchanged...]
+// [Rest of your existing functions remain unchanged...]
+// fetchQuotesFromServer, postQuotesToServer, loadQuotes, saveQuotes, 
+// showRandomQuote, addQuote, exportToJson, importFromJsonFile, etc.

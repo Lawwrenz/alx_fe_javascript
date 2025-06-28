@@ -1,80 +1,43 @@
-// Quote database
-let quotes = [];
-let categories = [];
-let pendingChanges = false;
-let lastSyncTime = null;
-let syncInterval = 30000; // 30 seconds
+// [Previous constants and variables remain the same...]
 
-// JSONPlaceholder API endpoint
-const API_URL = 'https://jsonplaceholder.typicode.com/posts';
-
-// Fetch quotes from JSONPlaceholder API
-async function fetchQuotesFromServer() {
-  showSyncStatus("Fetching quotes from server...", "syncing");
+// New syncQuotes function to handle the complete synchronization process
+async function syncQuotes() {
+  showSyncStatus("Starting quote synchronization...", "syncing");
+  
   try {
-    const response = await fetch(API_URL, {
-      headers: {
-        'Content-Type': 'application/json'
+    // Step 1: Fetch server quotes
+    const fetchSuccess = await fetchQuotesFromServer();
+    if (!fetchSuccess) {
+      throw new Error("Failed to fetch quotes from server");
+    }
+
+    // Step 2: Post local changes if any
+    if (pendingChanges) {
+      const postSuccess = await postQuotesToServer(quotes);
+      if (!postSuccess) {
+        throw new Error("Failed to post quotes to server");
       }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      pendingChanges = false;
     }
-    
-    const posts = await response.json();
-    const serverQuotes = posts.slice(0, 5).map(post => ({
-      text: post.title,
-      category: `Category ${post.id % 3 + 1}` // Simple category assignment
-    }));
-    
-    // Merge with local quotes
-    const mergedQuotes = [...new Set([...quotes, ...serverQuotes])];
-    
-    if (mergedQuotes.length !== quotes.length) {
-      quotes = mergedQuotes;
-      saveQuotes();
-      updateCategoriesList();
-      populateCategories();
-      showSyncStatus("Updated quotes from server", "success");
-    }
-    
+
+    // Step 3: Update last sync time
+    lastSyncTime = new Date().toISOString();
+    showSyncStatus("Quote synchronization completed", "success");
     return true;
+    
   } catch (error) {
-    showSyncStatus(`Fetch failed: ${error.message}`, "error");
+    showSyncStatus(`Synchronization failed: ${error.message}`, "error");
     return false;
   }
 }
 
-// Post quotes to server
-async function postQuotesToServer(quotesToPost) {
-  showSyncStatus("Posting quotes to server...", "syncing");
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify(quotesToPost),
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    showSyncStatus("Quotes posted to server", "success");
-    return { success: true, data: result };
-  } catch (error) {
-    showSyncStatus(`Post failed: ${error.message}`, "error");
-    return { success: false, error: error.message };
-  }
+// Updated syncWithServer to use syncQuotes
+async function syncWithServer() {
+  return await syncQuotes();
 }
 
 // [Rest of your existing functions remain unchanged...]
-// loadQuotes, saveQuotes, populateCategories, filterQuotes, 
-// showRandomQuote, addQuote, exportToJson, importFromJsonFile, 
-// createAddQuoteForm, etc.
+// fetchQuotesFromServer, postQuotesToServer, loadQuotes, saveQuotes, etc.
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -86,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('exportBtn').addEventListener('click', exportToJson);
   document.getElementById('importFile').addEventListener('change', importFromJsonFile);
   document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
-  document.getElementById('syncNowBtn').addEventListener('click', syncWithServer);
+  document.getElementById('syncNowBtn').addEventListener('click', syncQuotes); // Updated to use syncQuotes
   
   // Restore last selected filter
   const lastFilter = localStorage.getItem('lastFilter');
@@ -97,8 +60,8 @@ document.addEventListener('DOMContentLoaded', function() {
   showRandomQuote();
   
   // Start periodic sync
-  setInterval(syncWithServer, syncInterval);
+  setInterval(syncQuotes, syncInterval); // Updated to use syncQuotes
   
   // Initial sync
-  setTimeout(syncWithServer, 2000);
+  setTimeout(syncQuotes, 2000); // Updated to use syncQuotes
 });

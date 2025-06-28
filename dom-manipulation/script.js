@@ -8,27 +8,23 @@ let syncInterval = 30000; // 30 seconds
 // JSONPlaceholder API endpoint
 const API_URL = 'https://jsonplaceholder.typicode.com/posts';
 
-// Convert JSONPlaceholder posts to our quote format
-function convertToQuoteFormat(posts) {
-  const categories = ['Inspiration', 'Leadership', 'Life', 'Wisdom', 'Success'];
-  return posts.map(post => ({
-    text: post.title,
-    category: categories[post.id % categories.length] || 'General'
-  }));
-}
-
-// Fetch quotes from JSONPlaceholder API
+// Fetch quotes from JSONPlaceholder API with explicit Content-Type
 async function fetchQuotesFromServer() {
   showSyncStatus("Fetching quotes from server...", "syncing");
   try {
-    const response = await fetch(API_URL);
+    const response = await fetch(API_URL, {
+      headers: {
+        'Content-Type': 'application/json' // Explicit Content-Type header
+      }
+    });
+    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const posts = await response.json();
-    const serverQuotes = convertToQuoteFormat(posts.slice(0, 10)); // Get first 10 posts
     
-    // Merge with local quotes
+    const posts = await response.json();
+    const serverQuotes = convertToQuoteFormat(posts.slice(0, 10));
+    
     const mergedQuotes = mergeQuoteArrays(quotes, serverQuotes);
     
     if (mergedQuotes.length !== quotes.length) {
@@ -46,17 +42,16 @@ async function fetchQuotesFromServer() {
   }
 }
 
-// Post quotes to JSONPlaceholder (simulated as it doesn't actually save)
+// Post quotes to JSONPlaceholder with explicit Content-Type
 async function postQuotesToServer(quotesToPost) {
   showSyncStatus("Posting quotes to server...", "syncing");
   try {
-    // JSONPlaceholder doesn't actually persist, but we'll simulate
     const response = await fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify(quotesToPost),
       headers: {
-        'Content-type': 'application/json; charset=UTF-8',
-      },
+        'Content-Type': 'application/json; charset=UTF-8' // Explicit Content-Type with charset
+      }
     });
     
     if (!response.ok) {
@@ -72,10 +67,7 @@ async function postQuotesToServer(quotesToPost) {
   }
 }
 
-// [Rest of your existing functions (mergeQuoteArrays, showSyncStatus, 
-// loadQuotes, saveQuotes, populateCategories, filterQuotes, 
-// showRandomQuote, addQuote, exportToJson, importFromJsonFile, 
-// createAddQuoteForm) remain unchanged]
+// [Rest of your existing functions remain unchanged...]
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -109,17 +101,13 @@ async function syncWithServer() {
   showSyncStatus("Syncing with server...", "syncing");
   
   try {
-    // First fetch any server updates
     await fetchQuotesFromServer();
     
-    // Then push our local changes if we have any
     if (pendingChanges) {
       const postResponse = await postQuotesToServer(quotes);
-      
       if (!postResponse.success) {
         throw new Error("Failed to update server data");
       }
-      
       pendingChanges = false;
     }
     

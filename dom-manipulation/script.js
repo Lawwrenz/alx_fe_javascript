@@ -8,20 +8,46 @@ let syncInterval = 30000; // 30 seconds
 // JSONPlaceholder API endpoint
 const API_URL = 'https://jsonplaceholder.typicode.com/posts';
 
-// Fetch quotes from JSONPlaceholder API with explicit Content-Type
+// Main synchronization function
+async function syncQuotes() {
+  showSyncStatus("Starting quote synchronization...", "syncing");
+  
+  try {
+    // Step 1: Fetch server quotes
+    const fetchSuccess = await fetchQuotesFromServer();
+    if (!fetchSuccess) throw new Error("Failed to fetch quotes from server");
+
+    // Step 2: Post local changes if any exist
+    if (pendingChanges) {
+      const postSuccess = await postQuotesToServer(quotes);
+      if (!postSuccess) throw new Error("Failed to post quotes to server");
+      pendingChanges = false;
+    }
+
+    // Step 3: Update last sync time
+    lastSyncTime = new Date().toISOString();
+    showSyncStatus("Quote synchronization completed", "success");
+    return true;
+    
+  } catch (error) {
+    showSyncStatus(`Synchronization failed: ${error.message}`, "error");
+    return false;
+  }
+}
+
+// Fetch quotes from JSONPlaceholder API
 async function fetchQuotesFromServer() {
   showSyncStatus("Fetching quotes from server...", "syncing");
   try {
     const response = await fetch(API_URL, {
       headers: {
-        'Content-Type': 'application/json' // Explicit Content-Type header
+        'Content-Type': 'application/json'
       }
     });
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
     const posts = await response.json();
     const serverQuotes = convertToQuoteFormat(posts.slice(0, 10));
     
@@ -42,7 +68,7 @@ async function fetchQuotesFromServer() {
   }
 }
 
-// Post quotes to JSONPlaceholder with explicit Content-Type
+// Post quotes to JSONPlaceholder
 async function postQuotesToServer(quotesToPost) {
   showSyncStatus("Posting quotes to server...", "syncing");
   try {
@@ -50,7 +76,7 @@ async function postQuotesToServer(quotesToPost) {
       method: 'POST',
       body: JSON.stringify(quotesToPost),
       headers: {
-        'Content-Type': 'application/json; charset=UTF-8' // Explicit Content-Type with charset
+        'Content-Type': 'application/json; charset=UTF-8'
       }
     });
     
@@ -67,8 +93,6 @@ async function postQuotesToServer(quotesToPost) {
   }
 }
 
-// [Rest of your existing functions remain unchanged...]
-
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
   loadQuotes();
@@ -79,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('exportBtn').addEventListener('click', exportToJson);
   document.getElementById('importFile').addEventListener('change', importFromJsonFile);
   document.getElementById('categoryFilter').addEventListener('change', filterQuotes);
-  document.getElementById('syncNowBtn').addEventListener('click', syncWithServer);
+  document.getElementById('syncNowBtn').addEventListener('click', syncQuotes);
   
   // Restore last selected filter
   const lastFilter = localStorage.getItem('lastFilter');
@@ -90,32 +114,10 @@ document.addEventListener('DOMContentLoaded', function() {
   showRandomQuote();
   
   // Start periodic sync
-  setInterval(syncWithServer, syncInterval);
+  setInterval(syncQuotes, syncInterval);
   
   // Initial sync
-  setTimeout(syncWithServer, 2000);
+  setTimeout(syncQuotes, 2000);
 });
 
-// Sync with server
-async function syncWithServer() {
-  showSyncStatus("Syncing with server...", "syncing");
-  
-  try {
-    await fetchQuotesFromServer();
-    
-    if (pendingChanges) {
-      const postResponse = await postQuotesToServer(quotes);
-      if (!postResponse.success) {
-        throw new Error("Failed to update server data");
-      }
-      pendingChanges = false;
-    }
-    
-    lastSyncTime = new Date().toISOString();
-    showSyncStatus("Sync completed successfully", "success");
-    
-  } catch (error) {
-    console.error("Sync error:", error);
-    showSyncStatus(`Sync failed: ${error.message}`, "error");
-  }
-}
+// [Rest of your existing functions remain unchanged...]

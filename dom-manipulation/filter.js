@@ -11,8 +11,6 @@ const formContainer = document.getElementById('formContainer');
 const exportQuotesBtn = document.getElementById('exportQuotes');
 const importQuotesBtn = document.getElementById('importQuotes');
 const importFileInput = document.getElementById('importFile');
-const categoryFilter = document.getElementById('categoryFilter');
-const clearFilterBtn = document.getElementById('clearFilter');
 const categorySelector = document.getElementById('categorySelector');
 
 // Initialize the app
@@ -25,7 +23,9 @@ document.addEventListener('DOMContentLoaded', function() {
     currentCategory = savedCategory;
   }
   
-  populateCategoryFilter();
+  // Create category filter dropdown dynamically
+  createCategoryFilter();
+  
   showRandomQuote();
   
   // Event listeners
@@ -34,8 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
   exportQuotesBtn.addEventListener('click', exportToJson);
   importQuotesBtn.addEventListener('click', () => importFileInput.click());
   importFileInput.addEventListener('change', importFromJsonFile);
-  categoryFilter.addEventListener('change', filterQuotes);
-  clearFilterBtn.addEventListener('click', clearFilter);
   
   updateCategoryButtons();
   
@@ -49,6 +47,69 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
   }
 });
+
+// Create category filter dropdown
+function createCategoryFilter() {
+  const filterControls = document.createElement('div');
+  filterControls.id = 'filterControls';
+  
+  const label = document.createElement('label');
+  label.textContent = 'Filter by category:';
+  label.htmlFor = 'categoryFilter';
+  
+  const select = document.createElement('select');
+  select.id = 'categoryFilter';
+  
+  const allOption = document.createElement('option');
+  allOption.value = 'all';
+  allOption.textContent = 'All Categories';
+  select.appendChild(allOption);
+  
+  // Get unique categories and sort them
+  const categories = [...new Set(quotes.map(quote => quote.category))];
+  categories.sort();
+  
+  // Add category options
+  categories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    select.appendChild(option);
+  });
+  
+  // Set the selected category from storage
+  if (currentCategory && currentCategory !== "all") {
+    select.value = currentCategory;
+  }
+  
+  // Add event listener for filtering
+  select.addEventListener('change', function() {
+    currentCategory = this.value;
+    localStorage.setItem('lastCategoryFilter', currentCategory);
+    updateCategoryButtons();
+    showRandomQuote();
+  });
+  
+  // Create clear filter button
+  const clearBtn = document.createElement('button');
+  clearBtn.id = 'clearFilter';
+  clearBtn.textContent = 'Clear Filter';
+  clearBtn.addEventListener('click', function() {
+    currentCategory = "all";
+    localStorage.setItem('lastCategoryFilter', currentCategory);
+    select.value = "all";
+    updateCategoryButtons();
+    showRandomQuote();
+  });
+  
+  // Append elements to filter controls
+  filterControls.appendChild(label);
+  filterControls.appendChild(select);
+  filterControls.appendChild(clearBtn);
+  
+  // Insert filter controls at the top of the body
+  document.body.insertBefore(filterControls, document.body.firstChild);
+}
 
 // Load quotes from local storage
 function loadQuotes() {
@@ -72,45 +133,6 @@ function loadQuotes() {
 // Save quotes to local storage
 function saveQuotes() {
   localStorage.setItem('quotes', JSON.stringify(quotes));
-}
-
-// Populate the category filter dropdown
-function populateCategoryFilter() {
-  categoryFilter.innerHTML = '<option value="all">All Categories</option>';
-  
-  const categories = [...new Set(quotes.map(quote => quote.category))];
-  categories.sort();
-  
-  categories.forEach(category => {
-    const option = document.createElement('option');
-    option.value = category;
-    option.textContent = category;
-    categoryFilter.appendChild(option);
-  });
-  
-  // Set the selected category from storage
-  if (currentCategory && currentCategory !== "all") {
-    categoryFilter.value = currentCategory;
-  }
-}
-
-// Filter quotes based on selected category
-function filterQuotes() {
-  currentCategory = categoryFilter.value;
-  localStorage.setItem('lastCategoryFilter', currentCategory);
-  
-  // Update UI to reflect active filter
-  updateCategoryButtons();
-  showRandomQuote();
-}
-
-// Clear the current filter
-function clearFilter() {
-  currentCategory = "all";
-  localStorage.setItem('lastCategoryFilter', currentCategory);
-  categoryFilter.value = "all";
-  updateCategoryButtons();
-  showRandomQuote();
 }
 
 // Display a random quote from the current category
@@ -139,7 +161,7 @@ function showRandomQuote() {
 // Update category buttons with active state
 function updateCategoryButtons() {
   const categories = ["all", ...new Set(quotes.map(quote => quote.category))];
-  categorySelector.innerHTML = '<h3>Or select a category:</h3>';
+  categorySelector.innerHTML = '<h3>Select a category:</h3>';
   
   categories.forEach(category => {
     const displayName = category === "all" ? "All" : category;
@@ -153,7 +175,7 @@ function updateCategoryButtons() {
     button.addEventListener('click', () => {
       currentCategory = category;
       localStorage.setItem('lastCategoryFilter', currentCategory);
-      categoryFilter.value = category;
+      document.getElementById('categoryFilter').value = category;
       updateCategoryButtons();
       showRandomQuote();
     });
@@ -211,10 +233,14 @@ function addQuote() {
   saveQuotes();
   toggleAddForm();
   
-  // Update category filters if this is a new category
-  const categories = [...new Set(quotes.map(quote => quote.category))];
-  if (!categories.includes(category)) {
-    populateCategoryFilter();
+  // Update category filter if this is a new category
+  const select = document.getElementById('categoryFilter');
+  const options = Array.from(select.options).map(option => option.value);
+  if (!options.includes(category)) {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    select.appendChild(option);
   }
   
   updateCategoryButtons();
@@ -264,7 +290,10 @@ function importFromJsonFile(event) {
       
       quotes = importedQuotes;
       saveQuotes();
-      populateCategoryFilter();
+      
+      // Recreate the category filter with new categories
+      createCategoryFilter();
+      
       updateCategoryButtons();
       showRandomQuote();
       alert(`Successfully imported ${importedQuotes.length} quotes!`);

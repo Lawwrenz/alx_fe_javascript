@@ -45,6 +45,33 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+
+// Display a random quote
+function showRandomQuote() {
+  let filteredQuotes = currentCategory === "All" 
+    ? quotes 
+    : quotes.filter(quote => quote.category === currentCategory);
+  
+  if (filteredQuotes.length === 0) {
+    quoteDisplay.innerHTML = `<p>No quotes found in the ${currentCategory} category.</p>`;
+    return;
+  }
+  
+  // Explicit random selection using Math.random()
+  const randomDecimal = Math.random(); // Generates number between 0 (inclusive) and 1 (exclusive)
+  const randomIndex = Math.floor(randomDecimal * filteredQuotes.length); // Convert to integer index
+  
+  const quote = filteredQuotes[randomIndex];
+  
+  quoteDisplay.innerHTML = `
+    <p>"${quote.text}"</p>
+    <p>— ${quote.category}</p>
+  `;
+  
+  // Store last viewed quote in session storage
+  sessionStorage.setItem('lastViewedQuote', JSON.stringify(quote));
+}
+
 // [Rest of the functions remain the same until populateCategories]
 
 // Populate categories in the dropdown

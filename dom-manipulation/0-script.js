@@ -21,12 +21,15 @@ const importFileInput = document.getElementById('importFile');
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
-  // Load quotes from localStorage if available
-  loadQuotes();
-  
-  // Store last viewed time in sessionStorage
+  // DIRECT localStorage USAGE - Loading quotes
+  const savedQuotes = localStorage.getItem('quotes');
+  if (savedQuotes) {
+    quotes = JSON.parse(savedQuotes);
+  }
+
+  // DIRECT sessionStorage USAGE - Store last visited time
   sessionStorage.setItem('lastVisited', new Date().toLocaleString());
-  
+
   showRandomQuote();
   newQuoteBtn.addEventListener('click', showRandomQuote);
   showAddFormBtn.addEventListener('click', toggleAddForm);
@@ -34,26 +37,13 @@ document.addEventListener('DOMContentLoaded', function() {
   importFileInput.addEventListener('change', importFromJsonFile);
   
   updateCategoryButtons();
-  
+
   // Display last visited time if available
   const lastVisited = sessionStorage.getItem('lastVisited');
   if (lastVisited) {
     console.log(`Last visited: ${lastVisited}`);
   }
 });
-
-// Save quotes to localStorage
-function saveQuotes() {
-  localStorage.setItem('quotes', JSON.stringify(quotes));
-}
-
-// Load quotes from localStorage
-function loadQuotes() {
-  const savedQuotes = localStorage.getItem('quotes');
-  if (savedQuotes) {
-    quotes = JSON.parse(savedQuotes);
-  }
-}
 
 // Display a random quote
 function showRandomQuote() {
@@ -69,7 +59,7 @@ function showRandomQuote() {
   const randomIndex = Math.floor(Math.random() * filteredQuotes.length);
   const quote = filteredQuotes[randomIndex];
   
-  // Store last viewed quote in sessionStorage
+  // DIRECT sessionStorage USAGE - Store last viewed quote
   sessionStorage.setItem('lastQuote', JSON.stringify(quote));
   
   quoteDisplay.innerHTML = `
@@ -91,7 +81,6 @@ function createAddQuoteForm() {
     <button id="cancelAdd">Cancel</button>
   `;
   
-  // Add event listeners to the dynamically created buttons
   formDiv.querySelector('#submitQuote').addEventListener('click', addQuote);
   formDiv.querySelector('#cancelAdd').addEventListener('click', toggleAddForm);
   
@@ -124,7 +113,10 @@ function addQuote() {
   }
   
   quotes.push({ text, category });
-  saveQuotes(); // Save to localStorage
+  
+  // DIRECT localStorage USAGE - Save all quotes
+  localStorage.setItem('quotes', JSON.stringify(quotes));
+  
   toggleAddForm();
   showRandomQuote();
   updateCategoryButtons();
@@ -167,7 +159,6 @@ function exportQuotes() {
   link.click();
   document.body.removeChild(link);
   
-  // Clean up
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
@@ -186,7 +177,6 @@ function importFromJsonFile(event) {
         throw new Error('Invalid format: Expected an array of quotes');
       }
       
-      // Validate each quote
       const validQuotes = importedQuotes.filter(quote => 
         quote.text && quote.category && 
         typeof quote.text === 'string' && 
@@ -198,7 +188,10 @@ function importFromJsonFile(event) {
       }
       
       quotes.push(...validQuotes);
-      saveQuotes();
+      
+      // DIRECT localStorage USAGE - Save imported quotes
+      localStorage.setItem('quotes', JSON.stringify(quotes));
+      
       updateCategoryButtons();
       showRandomQuote();
       alert(`Successfully imported ${validQuotes.length} quotes!`);
@@ -208,7 +201,6 @@ function importFromJsonFile(event) {
       console.error(error);
     }
     
-    // Reset the file input
     event.target.value = '';
   };
   

@@ -8,20 +8,20 @@ let quotes = [
   { text: "You miss 100% of the shots you don't take.", category: "Motivation" }
 ];
 
-let currentCategory = "All"; // Default category
+let currentCategory = "All";
+let addFormVisible = false;
 
 // DOM elements
 const quoteDisplay = document.getElementById('quoteDisplay');
 const newQuoteBtn = document.getElementById('newQuote');
 const showAddFormBtn = document.getElementById('showAddForm');
-const addQuoteForm = document.getElementById('addQuoteForm');
-const categorySelector = document.getElementById('categorySelector');
+const formContainer = document.getElementById('formContainer');
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
   showRandomQuote();
   newQuoteBtn.addEventListener('click', showRandomQuote);
-  showAddFormBtn.addEventListener('click', showAddForm);
+  showAddFormBtn.addEventListener('click', toggleAddForm);
   updateCategoryButtons();
 });
 
@@ -45,16 +45,36 @@ function showRandomQuote() {
   `;
 }
 
-// Show the add quote form
-function showAddForm() {
-  addQuoteForm.style.display = 'block';
+// Create the add quote form dynamically
+function createAddQuoteForm() {
+  const formDiv = document.createElement('div');
+  formDiv.id = 'addQuoteForm';
+  
+  formDiv.innerHTML = `
+    <h3>Add a New Quote</h3>
+    <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
+    <input id="newQuoteCategory" type="text" placeholder="Enter quote category" />
+    <button id="submitQuote">Add Quote</button>
+    <button id="cancelAdd">Cancel</button>
+  `;
+  
+  // Add event listeners to the dynamically created buttons
+  formDiv.querySelector('#submitQuote').addEventListener('click', addQuote);
+  formDiv.querySelector('#cancelAdd').addEventListener('click', toggleAddForm);
+  
+  return formDiv;
 }
 
-// Hide the add quote form
-function hideAddForm() {
-  addQuoteForm.style.display = 'none';
-  document.getElementById('newQuoteText').value = '';
-  document.getElementById('newQuoteCategory').value = '';
+// Toggle the add quote form visibility
+function toggleAddForm() {
+  if (!addFormVisible) {
+    const form = createAddQuoteForm();
+    formContainer.appendChild(form);
+    addFormVisible = true;
+  } else {
+    formContainer.innerHTML = '';
+    addFormVisible = false;
+  }
 }
 
 // Add a new quote
@@ -71,7 +91,7 @@ function addQuote() {
   }
   
   quotes.push({ text, category });
-  hideAddForm();
+  toggleAddForm();
   showRandomQuote();
   updateCategoryButtons();
   alert('Quote added successfully!');

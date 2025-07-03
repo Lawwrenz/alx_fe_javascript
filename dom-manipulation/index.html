@@ -10,7 +10,6 @@
   
   <div id="categorySelector">
     <h3>Select a category:</h3>
-    <!-- Categories will be added dynamically -->
   </div>
   
   <div id="quoteDisplay">
@@ -20,14 +19,9 @@
   <button id="newQuote">Show New Quote</button>
   <button id="showAddForm">Add New Quote</button>
   
-  <div id="addQuoteForm" style="display: none;">
-    <h3>Add a New Quote</h3>
-    <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
-    <input id="newQuoteCategory" type="text" placeholder="Enter quote category" />
-    <button onclick="addQuote()">Add Quote</button>
-    <button onclick="hideAddForm()">Cancel</button>
-  </div>
+  <!-- Form will be created dynamically here -->
+  <div id="formContainer"></div>
   
   <script src="script.js"></script>
 </body>
-</html>s
+</html>

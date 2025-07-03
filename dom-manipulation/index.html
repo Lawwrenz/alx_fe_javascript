@@ -3,43 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dynamic Quote Generator with Sync</title>
-  <style>
-    .sync-status {
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 4px;
-    }
-    .syncing { background-color: #fff3cd; }
-    .success { background-color: #d4edda; }
-    .error { background-color: #f8d7da; }
-    .conflict { background-color: #ffeeba; }
-    #resolveConflictBtn { margin-left: 10px; }
-  </style>
+  <title>Dynamic Quote Generator</title>
 </head>
 <body>
   <h1>Dynamic Quote Generator</h1>
   
-  <div id="syncStatus" class="sync-status" style="display: none;"></div>
+  <div id="categorySelector">
+    <h3>Select a category:</h3>
+    <!-- Categories will be added dynamically -->
+  </div>
   
-  <select id="categoryFilter">
-    <option value="all">All Categories</option>
-  </select>
+  <div id="quoteDisplay">
+    <p>Click "Show New Quote" to get started!</p>
+  </div>
   
-  <button id="syncNowBtn">Sync Now</button>
-  
-  <div id="quoteDisplay"></div>
   <button id="newQuote">Show New Quote</button>
-  <button id="exportBtn">Export Quotes</button>
+  <button id="showAddForm">Add New Quote</button>
   
-  <div>
+  <div id="addQuoteForm" style="display: none;">
+    <h3>Add a New Quote</h3>
     <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
     <input id="newQuoteCategory" type="text" placeholder="Enter quote category" />
     <button onclick="addQuote()">Add Quote</button>
+    <button onclick="hideAddForm()">Cancel</button>
   </div>
-  
-  <input type="file" id="importFile" accept=".json" style="display: none;" />
   
   <script src="script.js"></script>
 </body>
-</html>
+</html>s

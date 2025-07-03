@@ -1,4 +1,4 @@
-// Initial quotes data (will be overwritten by localStorage if available)
+// Initial quotes data
 let quotes = [
   { text: "The only way to do great work is to love what you do.", category: "Inspiration" },
   { text: "Life is what happens when you're busy making other plans.", category: "Life" },
@@ -21,13 +21,14 @@ const importFileInput = document.getElementById('importFile');
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
-  // DIRECT localStorage USAGE - Loading quotes
+  // Load quotes from localStorage - using explicit getItem
   const savedQuotes = localStorage.getItem('quotes');
   if (savedQuotes) {
     quotes = JSON.parse(savedQuotes);
+    console.log('Quotes loaded from localStorage');
   }
 
-  // DIRECT sessionStorage USAGE - Store last visited time
+  // Set last visited time in sessionStorage
   sessionStorage.setItem('lastVisited', new Date().toLocaleString());
 
   showRandomQuote();
@@ -37,12 +38,6 @@ document.addEventListener('DOMContentLoaded', function() {
   importFileInput.addEventListener('change', importFromJsonFile);
   
   updateCategoryButtons();
-
-  // Display last visited time if available
-  const lastVisited = sessionStorage.getItem('lastVisited');
-  if (lastVisited) {
-    console.log(`Last visited: ${lastVisited}`);
-  }
 });
 
 // Display a random quote
@@ -59,7 +54,7 @@ function showRandomQuote() {
   const randomIndex = Math.floor(Math.random() * filteredQuotes.length);
   const quote = filteredQuotes[randomIndex];
   
-  // DIRECT sessionStorage USAGE - Store last viewed quote
+  // Store last viewed quote in sessionStorage
   sessionStorage.setItem('lastQuote', JSON.stringify(quote));
   
   quoteDisplay.innerHTML = `
@@ -99,7 +94,7 @@ function toggleAddForm() {
   }
 }
 
-// Add a new quote
+// Add a new quote with explicit localStorage.setItem
 function addQuote() {
   const textInput = document.getElementById('newQuoteText');
   const categoryInput = document.getElementById('newQuoteCategory');
@@ -112,10 +107,12 @@ function addQuote() {
     return;
   }
   
+  // Add new quote to array
   quotes.push({ text, category });
   
-  // DIRECT localStorage USAGE - Save all quotes
+  // EXPLICIT localStorage.setItem - Save all quotes
   localStorage.setItem('quotes', JSON.stringify(quotes));
+  console.log('Quote saved to localStorage');
   
   toggleAddForm();
   showRandomQuote();
@@ -162,7 +159,7 @@ function exportQuotes() {
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
-// Import quotes from JSON file
+// Import quotes from JSON file with explicit localStorage.setItem
 function importFromJsonFile(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -187,10 +184,12 @@ function importFromJsonFile(event) {
         throw new Error('No valid quotes found in the file');
       }
       
+      // Add imported quotes to array
       quotes.push(...validQuotes);
       
-      // DIRECT localStorage USAGE - Save imported quotes
+      // EXPLICIT localStorage.setItem - Save imported quotes
       localStorage.setItem('quotes', JSON.stringify(quotes));
+      console.log('Imported quotes saved to localStorage');
       
       updateCategoryButtons();
       showRandomQuote();
